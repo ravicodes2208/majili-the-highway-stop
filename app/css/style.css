@@ -614,6 +614,55 @@ body {
 }
 .menu-link:hover { text-decoration: underline; }
 
+/* ---- Menu Accordion ---- */
+.menu-acc {
+  margin-bottom: 8px;
+}
+.menu-acc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  user-select: none;
+}
+.menu-acc-header:hover {
+  background: #f8f9fa;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.menu-acc-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: #888;
+}
+.menu-acc-stats .stat-val {
+  font-weight: 700;
+  color: #1565c0;
+}
+.menu-acc-body {
+  padding: 4px 0 8px;
+}
+.menu-acc-body.collapsed {
+  display: none;
+}
+.btn-add-item {
+  border: none;
+  background: #1565c0;
+  color: #fff;
+  border-radius: 4px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.btn-add-item:hover { background: #0d47a1; }
+
 /* ---- Optimizer Summary Bar ---- */
 .opt-summary {
   display: flex;
@@ -641,6 +690,7 @@ body {
   .charts-grid { grid-template-columns: 1fr; }
   .dash-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
   .answer-grid { grid-template-columns: repeat(2, 1fr); }
+  .menu-acc-stats { display: none; }
 }
 
 @media (max-width: 768px) {

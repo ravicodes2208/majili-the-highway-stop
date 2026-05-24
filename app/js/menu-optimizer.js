@@ -1,11 +1,10 @@
 // ================================================================
-// menu-optimizer.js — Menu & Margin Optimizer
+// menu-optimizer.js — Menu & Margin Optimizer (accordion layout)
 // ================================================================
 
 function renderMenuOptPage(el) {
   const R = calcAll();
 
-  // Find categories with menuItems
   const menuCats = D.categories
     .map((cat, idx) => ({ ...cat, idx, stats: getMenuStats(cat) }))
     .filter(c => c.menuItems && c.menuItems.length > 0);
@@ -13,39 +12,88 @@ function renderMenuOptPage(el) {
   let h = `
   <div class="page-head">
     <h2>🍽️ Menu & Margin Optimizer</h2>
-    <p>Set selling price and cost for each item. Computed margins flow into Category Breakeven and all dashboards.</p>
+    <p>Set individual item prices and costs. Computed margins flow into Category Breakeven and all dashboards.</p>
   </div>`;
 
   if (menuCats.length === 0) {
-    h += `<div class="card" style="padding:24px;text-align:center">
-      <p style="color:#888;font-size:14px">No categories have menu items yet. Menu items will be added as you configure each category.</p>
-    </div>`;
+    h += `<div class="card" style="padding:24px;text-align:center"><p style="color:#888">No categories have menu items configured yet.</p></div>`;
     el.innerHTML = h;
     return;
   }
 
-  // ---- Render each category ----
+  // ---- Overview Summary Table ----
+  h += `
+  <div class="card" style="padding:16px">
+    <h3 style="margin-bottom:8px">📋 All Categories Overview</h3>
+    <table class="tbl">
+      <thead><tr>
+        <th>Category</th>
+        <th class="num">Items</th>
+        <th class="num">Avg Price</th>
+        <th class="num">Avg Cost</th>
+        <th class="num">Margin %</th>
+        <th class="num">CapEx %</th>
+        <th class="num">BE Units/Day</th>
+      </tr></thead>
+      <tbody>`;
+
+  menuCats.forEach(cat => {
+    const s = cat.stats;
+    const c = R.cats[cat.idx];
+    const mColor = s && s.marginPct >= 55 ? 'green' : s && s.marginPct >= 35 ? '' : 'red';
+    h += `<tr style="cursor:pointer" onclick="toggleMenuCat(${cat.idx});document.getElementById('menu-acc-${cat.idx}').scrollIntoView({behavior:'smooth',block:'start'})">
+      <td>${cat.icon} ${cat.name}</td>
+      <td class="num">${s ? s.activeCount + '/' + s.totalCount : '--'}</td>
+      <td class="num">${s ? fmt(s.avgPrice) : '--'}</td>
+      <td class="num">${s ? fmt(s.avgCost) : '--'}</td>
+      <td class="num bold ${mColor}">${s ? fmtP(s.marginPct / 100, 1) : '--'}</td>
+      <td class="num">${cat.capexPct}%</td>
+      <td class="num">${fmtD(c.unitsBE, 0)}</td>
+    </tr>`;
+  });
+
+  h += `</tbody></table>
+    <div class="info" style="margin-top:8px">Click any row to jump to that category. CapEx% must total 100% (set in <a href="#category" onclick="event.preventDefault();navigate('category')">Category Breakeven</a>).</div>
+  </div>`;
+
+  // ---- Category Accordions ----
   menuCats.forEach(cat => {
     const stats = cat.stats;
     const catCalc = R.cats[cat.idx];
     const subcats = [...new Set(cat.menuItems.map(i => i.subcat))];
+    const mPct = stats ? stats.marginPct.toFixed(0) : '--';
 
-    // ---- Summary Cards ----
     h += `
-    <div class="card" style="padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-        <h3 style="margin:0">${cat.icon} ${cat.name}</h3>
-        <span style="font-size:12px;color:#888">${subcats.length} subcategories · ${cat.menuItems.length} total items</span>
+  <div class="menu-acc" id="menu-acc-${cat.idx}">
+    <div class="menu-acc-header" onclick="toggleMenuCat(${cat.idx})">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">${cat.icon}</span>
+        <div>
+          <div style="font-weight:700;font-size:15px">${cat.name}</div>
+          <div style="font-size:11px;color:#888">${subcats.length} subcategories · ${cat.menuItems.length} items</div>
+        </div>
       </div>
-      <div class="dash-grid cols-4" style="margin-top:12px">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="menu-acc-stats">
+          <span>Avg ${stats ? fmt(stats.avgPrice) : '--'}</span>
+          <span class="stat-val">${mPct}% margin</span>
+          <span>BE: ${fmtD(catCalc.unitsBE, 0)} units/d</span>
+        </div>
+        <span class="chevron" id="menu-chev-${cat.idx}">▶</span>
+      </div>
+    </div>
+    <div class="menu-acc-body collapsed" id="menu-body-${cat.idx}">`;
+
+    // Summary cards inside
+    h += `
+      <div class="dash-grid cols-4" style="margin:12px 0">
         ${dCard('Active Items', stats ? stats.activeCount + ' / ' + stats.totalCount : '0', 'on menu')}
         ${dCard('Avg Selling Price', stats ? fmt(stats.avgPrice) : '--', 'across active items')}
         ${dCard('Avg Cost', stats ? fmt(stats.avgCost) : '--', 'material + prep')}
         ${dCard('Avg Margin', stats ? fmtP(stats.marginPct / 100, 1) : '--', stats ? fmt(stats.avgPrice - stats.avgCost) + ' per unit' : '')}
-      </div>
-    </div>`;
+      </div>`;
 
-    // ---- Subcategory Tables ----
+    // Subcategory tables
     subcats.forEach(sc => {
       const items = cat.menuItems.filter(i => i.subcat === sc);
       const scActive = items.filter(i => i.on);
@@ -55,216 +103,140 @@ function renderMenuOptPage(el) {
       const scId = sc.replace(/\s+/g, '-');
 
       h += `
-    <div class="card" style="padding:16px">
-      <div class="section-head" onclick="toggleCollapse(this)">
-        <h3>${sc} <span class="tag">${scActive.length}/${items.length} items · Avg ${fmt(scAvgSell)} · ${scMargin.toFixed(0)}% margin</span></h3>
-        <span class="chevron">▼</span>
-      </div>
-      <div class="collapsible">
-        <table class="tbl" style="margin-top:8px">
-          <thead><tr>
-            <th style="width:40px">On</th>
-            <th>Item</th>
-            <th class="num yellow-head">Sell ₹</th>
-            <th class="num yellow-head">Cost ₹</th>
-            <th class="num">Margin ₹</th>
-            <th class="num">Margin %</th>
-            <th class="num">Margin Bar</th>
-            <th style="width:40px"></th>
-          </tr></thead>
-          <tbody>`;
+      <div class="card" style="padding:12px 16px;margin-bottom:8px">
+        <div class="section-head" onclick="toggleCollapse(this)">
+          <h3 style="font-size:14px">${sc} <span class="tag">${scActive.length}/${items.length} items · ${fmt(scAvgSell)} avg · ${scMargin.toFixed(0)}% margin</span></h3>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="collapsible">
+          <table class="tbl" style="margin-top:6px">
+            <thead><tr>
+              <th style="width:36px">On</th>
+              <th>Item</th>
+              <th class="num yellow-head">Sell ₹</th>
+              <th class="num yellow-head">Cost ₹</th>
+              <th class="num">Margin ₹</th>
+              <th class="num">Margin %</th>
+              <th class="num" style="width:80px">Bar</th>
+              <th style="width:30px"></th>
+            </tr></thead>
+            <tbody>`;
 
       items.forEach(item => {
-        const globalIdx = cat.menuItems.indexOf(item);
+        const gIdx = cat.menuItems.indexOf(item);
         const margin = item.sell - item.cost;
         const marginPct = item.sell > 0 ? (margin / item.sell * 100) : 0;
         const rowCls = item.on ? '' : ' class="item-off"';
-        const mColor = marginPct >= 65 ? 'green' : marginPct >= 45 ? '' : 'red';
+        const mColor = marginPct >= 60 ? 'green' : marginPct >= 40 ? '' : 'red';
         const barW = Math.min(marginPct, 100);
-        const barColor = marginPct >= 65 ? '#2e7d32' : marginPct >= 45 ? '#ff9800' : '#c62828';
+        const barColor = marginPct >= 60 ? '#2e7d32' : marginPct >= 40 ? '#ff9800' : '#c62828';
 
         h += `<tr${rowCls}>
-          <td><label class="toggle"><input type="checkbox" ${item.on ? 'checked' : ''} onchange="toggleMenuItem(${cat.idx},${globalIdx},this.checked)"><span class="slider"></span></label></td>
+          <td><label class="toggle"><input type="checkbox" ${item.on ? 'checked' : ''} onchange="toggleMenuItem(${cat.idx},${gIdx},this.checked)"><span class="slider"></span></label></td>
           <td>${esc(item.name)}</td>
-          <td class="num"><input type="number" class="inp-yellow sm" value="${item.sell}" min="0" onchange="updateMenuItem(${cat.idx},${globalIdx},'sell',+this.value)"></td>
-          <td class="num"><input type="number" class="inp-yellow sm" value="${item.cost}" min="0" onchange="updateMenuItem(${cat.idx},${globalIdx},'cost',+this.value)"></td>
+          <td class="num"><input type="number" class="inp-yellow sm" value="${item.sell}" min="0" onchange="updateMenuItem(${cat.idx},${gIdx},'sell',+this.value)"></td>
+          <td class="num"><input type="number" class="inp-yellow sm" value="${item.cost}" min="0" onchange="updateMenuItem(${cat.idx},${gIdx},'cost',+this.value)"></td>
           <td class="num bold">${fmt(margin)}</td>
           <td class="num ${mColor}">${marginPct.toFixed(1)}%</td>
-          <td class="num"><div class="impact-bar"><div class="fill" style="width:${barW}%;background:${barColor}"></div></div></td>
-          <td><button onclick="removeMenuItem(${cat.idx},${globalIdx})" style="border:none;background:none;cursor:pointer;color:#c62828;font-size:16px" title="Remove item">✕</button></td>
+          <td><div class="impact-bar"><div class="fill" style="width:${barW}%;background:${barColor}"></div></div></td>
+          <td><button onclick="removeMenuItem(${cat.idx},${gIdx})" style="border:none;background:none;cursor:pointer;color:#c62828;font-size:14px" title="Remove">✕</button></td>
         </tr>`;
       });
 
-      // Subtotal row
+      // Subtotal
       h += `<tr class="total-row">
-          <td></td>
-          <td>${sc} Average</td>
-          <td class="num">${fmt(scAvgSell)}</td>
-          <td class="num">${fmt(scAvgCost)}</td>
-          <td class="num bold">${fmt(scAvgSell - scAvgCost)}</td>
-          <td class="num">${scMargin.toFixed(1)}%</td>
-          <td></td>
-          <td></td>
-        </tr>`;
-
-      h += `</tbody></table>
-
-        <!-- Add Item to this subcategory -->
-        <div class="add-row">
-          <input type="text" placeholder="Item name" id="add-name-${cat.idx}-${scId}" style="width:160px">
-          <input type="number" placeholder="Sell ₹" id="add-sell-${cat.idx}-${scId}" style="width:75px">
-          <input type="number" placeholder="Cost ₹" id="add-cost-${cat.idx}-${scId}" style="width:75px">
-          <button onclick="addMenuItem(${cat.idx},'${esc(sc)}','${cat.idx}-${scId}')" style="border:none;background:#1565c0;color:#fff;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600">+ Add</button>
+            <td></td><td>${sc} Avg</td>
+            <td class="num">${fmt(scAvgSell)}</td><td class="num">${fmt(scAvgCost)}</td>
+            <td class="num bold">${fmt(scAvgSell - scAvgCost)}</td><td class="num">${scMargin.toFixed(1)}%</td>
+            <td></td><td></td>
+          </tr></tbody></table>
+          <div class="add-row">
+            <input type="text" placeholder="Item name" id="add-name-${cat.idx}-${scId}" style="width:140px">
+            <input type="number" placeholder="Sell ₹" id="add-sell-${cat.idx}-${scId}" style="width:70px">
+            <input type="number" placeholder="Cost ₹" id="add-cost-${cat.idx}-${scId}" style="width:70px">
+            <button onclick="addMenuItem(${cat.idx},'${sc.replace(/'/g,"\\'")}','${cat.idx}-${scId}')" class="btn-add-item">+ Add</button>
+          </div>
         </div>
-      </div>
-    </div>`;
+      </div>`;
     });
 
-    // ---- Add item to NEW subcategory ----
+    // Add to new subcategory
     h += `
-    <div class="card" style="padding:16px">
-      <h4 style="margin-bottom:8px">Add Item to New Subcategory</h4>
-      <div class="add-row">
-        <input type="text" placeholder="Subcategory name" id="add-newsc-${cat.idx}" style="width:140px">
-        <input type="text" placeholder="Item name" id="add-newname-${cat.idx}" style="width:140px">
-        <input type="number" placeholder="Sell ₹" id="add-newsell-${cat.idx}" style="width:75px">
-        <input type="number" placeholder="Cost ₹" id="add-newcost-${cat.idx}" style="width:75px">
-        <button onclick="addNewSubcatItem(${cat.idx})" style="border:none;background:#e65100;color:#fff;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600">+ Add New</button>
-      </div>
-    </div>`;
+      <div class="add-row" style="margin:8px 0 4px;padding:8px 12px;background:#fafafa;border-radius:6px">
+        <span style="font-size:11px;color:#888;font-weight:600">NEW SUBCAT:</span>
+        <input type="text" placeholder="Subcategory" id="add-newsc-${cat.idx}" style="width:110px">
+        <input type="text" placeholder="Item name" id="add-newname-${cat.idx}" style="width:120px">
+        <input type="number" placeholder="Sell ₹" id="add-newsell-${cat.idx}" style="width:70px">
+        <input type="number" placeholder="Cost ₹" id="add-newcost-${cat.idx}" style="width:70px">
+        <button onclick="addNewSubcatItem(${cat.idx})" class="btn-add-item" style="background:#e65100">+ Add New</button>
+      </div>`;
 
-    // ---- Breakeven Impact ----
+    // Impact on breakeven
     h += `
-    <div class="card" style="padding:16px">
-      <h3 style="margin-bottom:8px">📈 Breakeven Impact — ${cat.name}</h3>
-      <div class="info">These computed values flow into the <a href="#category" onclick="event.preventDefault();navigate('category')">Category Breakeven</a> page and all dashboards.</div>
-      <table class="tbl" style="margin-top:8px">
-        <tbody>
-          <tr>
-            <td>Effective Avg Price</td>
-            <td class="num bold">${stats ? fmt(stats.avgPrice) : fmt(cat.avgPrice)}</td>
-            <td class="sub-text">${stats ? 'computed from ' + stats.activeCount + ' active items' : 'manual value (no menu items)'}</td>
-          </tr>
-          <tr>
-            <td>Effective Margin %</td>
-            <td class="num bold">${stats ? fmtP(stats.marginPct / 100, 1) : fmtP(cat.marginPct / 100, 1)}</td>
-            <td class="sub-text">${stats ? 'avg across menu items' : 'manual value'}</td>
-          </tr>
-          <tr>
-            <td>CapEx Allocation</td>
-            <td class="num">${fmt(catCalc.capexAlloc)}</td>
-            <td class="sub-text">${cat.capexPct}% of ${fmtL(D.totalCapex)}</td>
-          </tr>
-          <tr>
-            <td>Revenue/Day (Break-Even)</td>
-            <td class="num">${fmt(catCalc.revDayBE)}</td>
-            <td class="sub-text">to cover costs + CapEx recovery</td>
-          </tr>
-          <tr>
-            <td>Units/Day (Break-Even)</td>
-            <td class="num bold">${fmtD(catCalc.unitsBE, 0)} units</td>
-            <td class="sub-text">at ${fmt(catCalc.effectiveAvgPrice)} avg price</td>
-          </tr>
-          <tr>
-            <td>Revenue/Day (with ${fmt(D.targetMonthlyProfit)} profit)</td>
-            <td class="num">${fmt(catCalc.revDayProfit)}</td>
-            <td class="sub-text">includes profit target share</td>
-          </tr>
-          <tr>
-            <td>Units/Day (with profit)</td>
-            <td class="num bold">${fmtD(catCalc.unitsProfit, 0)} units</td>
-            <td class="sub-text">to hit your profit goal</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>`;
+      <div class="card" style="padding:12px 16px;margin-top:8px">
+        <div class="section-head" onclick="toggleCollapse(this)">
+          <h3 style="font-size:14px">📈 Breakeven Impact</h3>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="collapsible collapsed">
+          <table class="tbl" style="margin-top:6px">
+            <tbody>
+              <tr><td>Effective Avg Price</td><td class="num bold">${stats ? fmt(stats.avgPrice) : fmt(cat.avgPrice)}</td><td class="sub-text">${stats ? 'from ' + stats.activeCount + ' items' : 'manual'}</td></tr>
+              <tr><td>Effective Margin %</td><td class="num bold">${stats ? fmtP(stats.marginPct / 100, 1) : fmtP(cat.marginPct / 100, 1)}</td><td class="sub-text">computed from menu</td></tr>
+              <tr><td>CapEx Allocation</td><td class="num">${fmt(catCalc.capexAlloc)}</td><td class="sub-text">${cat.capexPct}% of ${fmtL(D.totalCapex)}</td></tr>
+              <tr><td>Rev/Day (Break-Even)</td><td class="num">${fmt(catCalc.revDayBE)}</td><td class="sub-text">costs + CapEx recovery</td></tr>
+              <tr><td>Units/Day (BE)</td><td class="num bold">${fmtD(catCalc.unitsBE, 0)} units</td><td class="sub-text">at ${fmt(catCalc.effectiveAvgPrice)} avg</td></tr>
+              <tr><td>Units/Day (with profit)</td><td class="num bold">${fmtD(catCalc.unitsProfit, 0)} units</td><td class="sub-text">includes ${fmt(D.targetMonthlyProfit)} target</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>`;
 
-    // ---- What-If: Margin Reduction Scenarios ----
-    if (stats) {
-      h += `
-    <div class="card" style="padding:16px">
-      <h3 style="margin-bottom:8px">🔍 What-If: Price / Margin Sensitivity</h3>
-      <p class="info" style="margin-bottom:8px">What happens to break-even units if your average margin changes?</p>
-      <table class="tbl">
-        <thead><tr>
-          <th>Scenario</th>
-          <th class="num">Avg Margin %</th>
-          <th class="num">Rev/Day (BE)</th>
-          <th class="num">Units/Day (BE)</th>
-          <th class="num">Change</th>
-        </tr></thead>
-        <tbody>`;
-
-      const baseUnits = catCalc.unitsBE;
-      [stats.marginPct, stats.marginPct - 5, stats.marginPct - 10, stats.marginPct + 5, stats.marginPct + 10].forEach((mp, idx) => {
-        const m = mp / 100;
-        const revBE = m > 0 ? (catCalc.monthlyRecovery + catCalc.fixedAlloc) / m / D.operatingDays : Infinity;
-        const units = stats.avgPrice > 0 ? revBE / stats.avgPrice : Infinity;
-        const diff = units - baseUnits;
-        const diffPct = baseUnits > 0 ? (diff / baseUnits * 100) : 0;
-        const label = idx === 0 ? 'Current' : (mp > stats.marginPct ? '+' : '') + (mp - stats.marginPct).toFixed(0) + '% margin';
-        const hl = idx === 0 ? ' style="background:#e8f5e9"' : '';
-        const dColor = diff > 0 ? 'red' : diff < 0 ? 'green' : '';
-
-        h += `<tr${hl}>
-          <td>${label}</td>
-          <td class="num">${mp.toFixed(1)}%</td>
-          <td class="num">${fmt(revBE)}</td>
-          <td class="num bold">${fmtD(units, 0)}</td>
-          <td class="num ${dColor}">${idx === 0 ? '--' : (diff > 0 ? '+' : '') + fmtD(diff, 0) + ' (' + (diffPct > 0 ? '+' : '') + fmtD(diffPct, 0) + '%)'}</td>
-        </tr>`;
-      });
-
-      h += `</tbody></table>
-    </div>`;
-    }
+    h += `
+    </div>
+  </div>`;
   });
 
-  // ---- Charts ----
+  // ---- Charts: Cross-Category Comparison ----
   h += `
-  <div class="charts-grid">
-    <div class="chart-card"><h4>Margin % by Subcategory</h4><canvas id="menu-margin-bar"></canvas></div>
-    <div class="chart-card"><h4>Sell Price vs Cost by Item</h4><canvas id="menu-price-cost-bar"></canvas></div>
+  <div class="charts-grid" style="margin-top:16px">
+    <div class="chart-card"><h4>Avg Margin % by Category</h4><canvas id="menu-cat-margin-bar"></canvas></div>
+    <div class="chart-card"><h4>Avg Price by Category</h4><canvas id="menu-cat-price-bar"></canvas></div>
   </div>`;
 
   el.innerHTML = h;
 
   // ---- Draw Charts ----
   setTimeout(() => {
-    // Margin by subcategory
-    const subcatData = [];
-    menuCats.forEach(cat => {
-      const subcats = [...new Set(cat.menuItems.map(i => i.subcat))];
-      subcats.forEach(sc => {
-        const items = cat.menuItems.filter(i => i.subcat === sc && i.on);
-        if (items.length === 0) return;
-        const avgSell = items.reduce((s, i) => s + i.sell, 0) / items.length;
-        const avgCost = items.reduce((s, i) => s + i.cost, 0) / items.length;
-        const margin = avgSell > 0 ? (avgSell - avgCost) / avgSell * 100 : 0;
-        subcatData.push({ label: sc + ' (' + margin.toFixed(0) + '%)', value: margin, color: COLORS[subcatData.length % COLORS.length] });
-      });
-    });
-    drawHBar('menu-margin-bar', subcatData);
+    const catBarData = menuCats.map((cat, i) => ({
+      label: cat.icon + ' ' + cat.name,
+      value: cat.stats ? cat.stats.marginPct : 0,
+      color: CAT_COLORS[cat.idx % CAT_COLORS.length]
+    }));
+    drawHBar('menu-cat-margin-bar', catBarData);
 
-    // Sell vs Cost paired bar
-    const allItems = [];
-    menuCats.forEach(cat => {
-      cat.menuItems.filter(i => i.on).forEach(item => allItems.push(item));
-    });
-    if (allItems.length > 0) {
-      drawPairedBar('menu-price-cost-bar', allItems.map(i => ({
-        label: i.name.length > 16 ? i.name.slice(0, 15) + '…' : i.name,
-        v1: i.sell, v2: i.cost,
-        color: '#1565c0'
-      })), 'Sell', 'Cost');
-    }
+    const priceBarData = menuCats.map((cat, i) => ({
+      label: cat.icon + ' ' + cat.name,
+      value: cat.stats ? cat.stats.avgPrice : 0,
+      color: CAT_COLORS[cat.idx % CAT_COLORS.length]
+    }));
+    drawHBar('menu-cat-price-bar', priceBarData);
   }, 50);
+}
+
+// ================================================================
+// Accordion toggle for category sections
+// ================================================================
+function toggleMenuCat(idx) {
+  const body = document.getElementById('menu-body-' + idx);
+  const chev = document.getElementById('menu-chev-' + idx);
+  if (body) body.classList.toggle('collapsed');
+  if (chev) chev.textContent = body && body.classList.contains('collapsed') ? '▶' : '▼';
 }
 
 // ================================================================
 // Menu Item Actions
 // ================================================================
-
 function toggleMenuItem(catIdx, itemIdx, on) {
   D.categories[catIdx].menuItems[itemIdx].on = on;
   save(); reRender();
@@ -304,7 +276,7 @@ function addNewSubcatItem(catIdx) {
   const name = nameEl ? nameEl.value.trim() : '';
   const sell = sellEl ? +sellEl.value : 0;
   const cost = costEl ? +costEl.value : 0;
-  if (!subcat) { alert('Enter a subcategory name (e.g. "Smoothies").'); return; }
+  if (!subcat) { alert('Enter a subcategory name.'); return; }
   if (!name) { alert('Enter an item name.'); return; }
   if (sell <= 0) { alert('Enter a selling price > 0.'); return; }
   if (!D.categories[catIdx].menuItems) D.categories[catIdx].menuItems = [];
