@@ -74,7 +74,11 @@ function drawHBar(id, data, h) {
 }
 
 // ---- PAIRED BAR (v1 vs v2) ----
-function drawPairedBar(id, data, h) {
+function drawPairedBar(id, data, lbl1, lbl2, h) {
+  // Backward compat: if lbl1 is a number, treat as h
+  if (typeof lbl1 === 'number') { h = lbl1; lbl1 = undefined; }
+  lbl1 = lbl1 || 'W/ Profit';
+  lbl2 = lbl2 || 'BE';
   h = h || (data.length * 50 + 30);
   const cv = setupCanvas(id, h);
   if (!cv) return;
@@ -95,10 +99,10 @@ function drawPairedBar(id, data, h) {
 
     ctx.fillStyle = d.color+'50'; ctx.fillRect(lp,y,bw1,barH);
     ctx.fillStyle = '#888'; ctx.textAlign = 'left'; ctx.font = '10px system-ui';
-    ctx.fillText('W/ Profit: '+fmtD(d.v1,0), lp+bw1+3, y+barH/2+3);
+    ctx.fillText(lbl1+': '+fmtD(d.v1,0), lp+bw1+3, y+barH/2+3);
 
     ctx.fillStyle = d.color; ctx.fillRect(lp,y+barH+2,bw2,barH);
-    ctx.fillText('BE: '+fmtD(d.v2,0), lp+bw2+3, y+barH*1.5+5);
+    ctx.fillText(lbl2+': '+fmtD(d.v2,0), lp+bw2+3, y+barH*1.5+5);
     ctx.font = '11px system-ui';
   });
 }

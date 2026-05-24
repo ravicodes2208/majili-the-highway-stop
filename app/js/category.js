@@ -67,11 +67,23 @@ function renderCategoryPage(el) {
 
   R.cats.forEach((c, i) => {
     const revPct = R.catTotals.revDayBE > 0 ? c.revDayBE / R.catTotals.revDayBE * 100 : 0;
+    const hasMenu = c.menuItems && c.menuItems.length > 0;
+
+    // Margin % cell: computed from menu (read-only) or editable
+    const marginCell = hasMenu
+      ? `<td class="num"><span class="computed-val">${fmtD(c.effectiveMarginPct,1)}%</span><br><a href="#menuopt" onclick="event.preventDefault();navigate('menuopt')" class="menu-link">from menu →</a></td>`
+      : `<td class="num"><input type="number" class="inp-yellow sm" value="${c.marginPct}" min="1" max="100" onchange="D.categories[${i}].marginPct=+this.value;save();reRender()"></td>`;
+
+    // Avg Price cell: computed from menu (read-only) or editable
+    const priceCell = hasMenu
+      ? `<td class="num"><span class="computed-val">${fmt(c.effectiveAvgPrice)}</span><br><a href="#menuopt" onclick="event.preventDefault();navigate('menuopt')" class="menu-link">from menu →</a></td>`
+      : `<td class="num"><input type="number" class="inp-yellow sm" value="${c.avgPrice}" min="1" onchange="D.categories[${i}].avgPrice=+this.value;save();reRender()"></td>`;
+
     h += `<tr>
-      <td>${c.icon} ${c.name}</td>
+      <td>${c.icon} ${c.name}${hasMenu ? ' <span class="computed-badge">MENU</span>' : ''}</td>
       <td class="num"><input type="number" class="inp-yellow sm" value="${c.capexPct}" min="0" max="100" onchange="D.categories[${i}].capexPct=+this.value;save();reRender()"></td>
       <td class="num">${c.capexPct}%</td>
-      <td class="num"><input type="number" class="inp-yellow sm" value="${c.marginPct}" min="1" max="100" onchange="D.categories[${i}].marginPct=+this.value;save();reRender()"></td>
+      ${marginCell}
       <td class="num">${fmtL(c.capexAlloc)}</td>
       <td class="num">${fmt(c.fixedAlloc)}</td>
       <td class="num">${fmt(c.monthlyRecovery)}</td>
@@ -79,7 +91,7 @@ function renderCategoryPage(el) {
       <td class="num">${fmtD(revPct,0)}%</td>
       <td class="num">${fmt(c.profitShare)}</td>
       <td class="num bold">${fmt(c.revDayProfit)}</td>
-      <td class="num"><input type="number" class="inp-yellow sm" value="${c.avgPrice}" min="1" onchange="D.categories[${i}].avgPrice=+this.value;save();reRender()"></td>
+      ${priceCell}
       <td class="num">${fmtD(c.unitsBE,1)}</td>
       <td class="num">${fmtD(c.unitsProfit,1)}</td>
     </tr>`;

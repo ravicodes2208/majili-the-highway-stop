@@ -9,6 +9,7 @@ const PAGES = {
   profit:     { title:'Actual Sales → Profit', icon:'💹', render: renderProfitPage },
   payback:    { title:'Payback Comparison',  icon:'⏱️', render: renderPaybackPage },
   fixedopt:   { title:'Fixed Cost Optimizer', icon:'📅', render: renderFixedOptPage, section:'Optimizers' },
+  menuopt:    { title:'Menu & Margin Optimizer', icon:'🍽️', render: renderMenuOptPage, section:'Optimizers' },
 };
 
 let currentPage = 'dashboard';

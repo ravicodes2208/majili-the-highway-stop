@@ -47,10 +47,15 @@ function calcAll() {
 
   // ---- Sheet 2: Category Breakeven ----
   const cats = D.categories.map((cat, i) => {
+    // Use menu-item computed values when available
+    const menuStats = getMenuStats(cat);
+    const effectiveAvgPrice = menuStats ? menuStats.avgPrice : cat.avgPrice;
+    const effectiveMarginPct = menuStats ? menuStats.marginPct : cat.marginPct;
+
     const capexAlloc = D.totalCapex * (cat.capexPct / 100);           // E: =B5*B13
     const fixedAlloc = fixedMonthlyCost * (cat.capexPct / 100);    // F: =B6*C13 (Fixed% = CapEx%)
     const monthlyRecovery = capexAlloc / paybackMonths;                // G: =E13/(B8*12)
-    const margin = cat.marginPct / 100;
+    const margin = effectiveMarginPct / 100;
 
     // Break-even revenue/day
     const revDayBE = margin > 0 ? (monthlyRecovery + fixedAlloc) / margin / D.operatingDays : Infinity; // H
@@ -62,11 +67,12 @@ function calcAll() {
     const revDayProfit = margin > 0 ? (monthlyRecovery + fixedAlloc + profitShare) / margin / D.operatingDays : Infinity; // K
 
     // Units/day
-    const unitsBE = cat.avgPrice > 0 ? revDayBE / cat.avgPrice : Infinity;      // M
-    const unitsProfit = cat.avgPrice > 0 ? revDayProfit / cat.avgPrice : Infinity; // N
+    const unitsBE = effectiveAvgPrice > 0 ? revDayBE / effectiveAvgPrice : Infinity;      // M
+    const unitsProfit = effectiveAvgPrice > 0 ? revDayProfit / effectiveAvgPrice : Infinity; // N
 
     return {
       ...cat, idx: i,
+      effectiveAvgPrice, effectiveMarginPct, menuStats,
       capexAlloc, fixedAlloc, monthlyRecovery,
       revDayBE, profitShare, revDayProfit,
       unitsBE, unitsProfit,

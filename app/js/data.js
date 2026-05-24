@@ -27,7 +27,28 @@ const DEFAULT_DATA = {
   // ---- Sheet 2: Category Allocation ----
   targetMonthlyProfit: 50000,      // Desired profit AFTER all costs + recovery
   categories: [
-    { name:"Hot Beverages",      icon:"☕",  capexPct:30, marginPct:50, avgPrice:28 },
+    { name:"Hot Beverages", icon:"☕", capexPct:30, marginPct:50, avgPrice:28, menuItems: [
+      // Hot Coffee
+      { name:"Filter Coffee",         subcat:"Hot Coffee", sell:40, cost:12, on:true },
+      { name:"Thati Bellam Coffee",    subcat:"Hot Coffee", sell:40, cost:14, on:true },
+      { name:"Premium Coffee",        subcat:"Hot Coffee", sell:40, cost:15, on:true },
+      { name:"Sukku Coffee",          subcat:"Hot Coffee", sell:45, cost:16, on:true },
+      { name:"Black Coffee",          subcat:"Hot Coffee", sell:40, cost:8,  on:true },
+      // Hot Milk
+      { name:"Hot Milk",              subcat:"Hot Milk", sell:15, cost:10, on:true },
+      { name:"Sukku Milk",            subcat:"Hot Milk", sell:25, cost:12, on:true },
+      { name:"Horlicks / Boost",      subcat:"Hot Milk", sell:25, cost:14, on:true },
+      { name:"Badam Milk / Ragi Malt",subcat:"Hot Milk", sell:25, cost:13, on:true },
+      { name:"Hot Chocolate",         subcat:"Hot Milk", sell:40, cost:18, on:true },
+      // Tea
+      { name:"Sp. Tea",               subcat:"Tea", sell:20, cost:6,  on:true },
+      { name:"Bellam Tea",            subcat:"Tea", sell:25, cost:8,  on:true },
+      { name:"Badam Tea",             subcat:"Tea", sell:25, cost:10, on:true },
+      { name:"Lemon Tea",             subcat:"Tea", sell:25, cost:7,  on:true },
+      { name:"Green Tea",             subcat:"Tea", sell:25, cost:8,  on:true },
+      { name:"Spl. Masala Green Tea", subcat:"Tea", sell:25, cost:10, on:true },
+      { name:"Black Tea",             subcat:"Tea", sell:25, cost:5,  on:true }
+    ]},
     { name:"Cold Beverages",     icon:"🧊", capexPct:20, marginPct:50, avgPrice:90 },
     { name:"Snacks",             icon:"🍟", capexPct:20, marginPct:50, avgPrice:35 },
     { name:"Ice Creams",         icon:"🍦", capexPct:12, marginPct:50, avgPrice:50 },
@@ -83,6 +104,10 @@ function loadState() {
       if (!data.fixedCosts) {
         data.fixedCosts = JSON.parse(JSON.stringify(DEFAULT_DATA.fixedCosts));
       }
+      // Migrate: if Hot Beverages category has no menuItems, add default
+      if (data.categories && data.categories[0] && !data.categories[0].menuItems) {
+        data.categories[0].menuItems = JSON.parse(JSON.stringify(DEFAULT_DATA.categories[0].menuItems));
+      }
       return data;
     }
   } catch(e) { console.warn('localStorage unavailable'); }
@@ -92,6 +117,23 @@ function loadState() {
 // Compute total fixed monthly cost from line items
 function getFixedMonthlyCost() {
   return D.fixedCosts.filter(i => i.on).reduce((s, i) => s + i.c, 0);
+}
+
+// Compute effective avgPrice and marginPct from menu items
+function getMenuStats(cat) {
+  if (!cat.menuItems || cat.menuItems.length === 0) return null;
+  const active = cat.menuItems.filter(i => i.on);
+  if (active.length === 0) return null;
+  const avgSell = active.reduce((s, i) => s + i.sell, 0) / active.length;
+  const avgCost = active.reduce((s, i) => s + i.cost, 0) / active.length;
+  const avgMarginPct = avgSell > 0 ? ((avgSell - avgCost) / avgSell) * 100 : 0;
+  return {
+    avgPrice: Math.round(avgSell * 100) / 100,
+    avgCost: Math.round(avgCost * 100) / 100,
+    marginPct: Math.round(avgMarginPct * 100) / 100,
+    activeCount: active.length,
+    totalCount: cat.menuItems.length
+  };
 }
 
 function saveState(data) {
