@@ -123,6 +123,72 @@ body {
   background: #e0e0e0;
 }
 
+/* ---- Save Bar ---- */
+.save-bar {
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 6px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.save-status {
+  color: #888;
+  font-size: 11px;
+}
+.save-actions {
+  display: flex;
+  gap: 8px;
+}
+.save-actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-save {
+  background: #2e7d32;
+  color: #fff;
+}
+.btn-save:hover { background: #1b5e20; }
+.btn-export {
+  background: #1565c0;
+  color: #fff;
+}
+.btn-export:hover { background: #0d47a1; }
+.btn-import {
+  background: #e65100;
+  color: #fff;
+}
+.btn-import:hover { background: #bf360c; }
+
+/* ---- Save Toast ---- */
+.save-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #333;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 200;
+}
+.save-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
 /* ---- Content ---- */
 .content {
   padding: 20px 24px 40px;
@@ -561,6 +627,9 @@ body {
   .main { margin-left: 56px; }
   .content { padding: 12px; }
   .top-bar { padding: 8px 12px; gap: 10px; }
+  .save-bar { padding: 6px 12px; flex-wrap: wrap; gap: 6px; }
+  .save-status { width: 100%; text-align: center; }
+  .save-actions { width: 100%; justify-content: center; }
   .dash-grid.cols-3, .dash-grid.cols-4 { grid-template-columns: 1fr 1fr; }
   .opt-row { grid-template-columns: 1fr 1fr; }
   .form-grid { grid-template-columns: 1fr 1fr; }
@@ -582,7 +651,7 @@ body {
 
 /* ---- Print ---- */
 @media print {
-  .sidebar, .top-bar, .nav-link.reset { display: none !important; }
+  .sidebar, .top-bar, .save-bar, .nav-link.reset { display: none !important; }
   .main { margin-left: 0; }
   .card, .answer-card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
 }

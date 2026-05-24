@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vishranti — Car-Based Breakeven Calculator</title>
+  <title>Majili — Car-Based Breakeven Calculator</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -53,8 +53,21 @@
       </div>
     </div>
 
+    <!-- Save Bar -->
+    <div class="save-bar">
+      <span id="last-saved" class="save-status">Not saved yet</span>
+      <div class="save-actions">
+        <button class="btn-save" onclick="explicitSave()" title="Save current data">💾 Save</button>
+        <button class="btn-export" onclick="exportData()" title="Download data as JSON">📥 Export</button>
+        <button class="btn-import" onclick="importData()" title="Load data from JSON file">📤 Import</button>
+      </div>
+    </div>
+
     <!-- Page Content -->
     <div class="content" id="content"></div>
+
+    <!-- Toast Notification -->
+    <div id="save-toast" class="save-toast"></div>
 
   </div>
 

@@ -95,7 +95,100 @@ function getFixedMonthlyCost() {
 }
 
 function saveState(data) {
-  try { localStorage.setItem('vishranti_v2', JSON.stringify(data)); } catch(e) {}
+  try {
+    data._savedAt = new Date().toISOString();
+    localStorage.setItem('vishranti_v2', JSON.stringify(data));
+  } catch(e) {}
+}
+
+function getLastSaved() {
+  return D._savedAt ? new Date(D._savedAt) : null;
+}
+
+// ---- Export: download state as JSON file ----
+function exportData() {
+  const blob = new Blob([JSON.stringify(D, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const date = new Date().toISOString().slice(0,10);
+  a.download = `majili-data-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showSaveToast('📥 Exported!');
+}
+
+// ---- Import: load state from JSON file ----
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        // Basic validation
+        if (typeof imported !== 'object' || !imported.spendPerCar) {
+          alert('Invalid file — not a Majili data export.');
+          return;
+        }
+        // Merge with defaults for any missing keys
+        Object.keys(DEFAULT_DATA).forEach(key => {
+          if (!(key in imported)) imported[key] = JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
+        });
+        D = imported;
+        saveState(D);
+        showSaveToast('📤 Imported!');
+        // Re-render everything
+        if (typeof reRender === 'function') reRender();
+        if (typeof renderNav === 'function') renderNav();
+        updateSaveBar();
+      } catch(err) {
+        alert('Could not read file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ---- Explicit save with visual feedback ----
+function explicitSave() {
+  saveState(D);
+  updateTopBar();
+  showSaveToast('✓ Saved!');
+  updateSaveBar();
+}
+
+function showSaveToast(msg) {
+  const toast = document.getElementById('save-toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function updateSaveBar() {
+  const el = document.getElementById('last-saved');
+  if (!el) return;
+  const ts = getLastSaved();
+  if (ts) {
+    const now = new Date();
+    const diff = Math.round((now - ts) / 1000);
+    let ago;
+    if (diff < 5) ago = 'just now';
+    else if (diff < 60) ago = diff + 's ago';
+    else if (diff < 3600) ago = Math.round(diff/60) + 'm ago';
+    else ago = ts.toLocaleTimeString();
+    el.textContent = 'Last saved: ' + ago;
+  } else {
+    el.textContent = 'Not saved yet';
+  }
 }
 
 function resetState() {

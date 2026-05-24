@@ -75,7 +75,7 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
-function save() { saveState(D); updateTopBar(); }
+function save() { saveState(D); updateTopBar(); updateSaveBar(); }
 
 function reRender() { renderPage(); updateTopBar(); }
 
@@ -95,6 +95,9 @@ window.addEventListener('DOMContentLoaded', () => {
   renderNav();
   renderPage();
   updateTopBar();
+  updateSaveBar();
+  // Refresh "last saved" timestamp every 30s
+  setInterval(updateSaveBar, 30000);
 });
 
 window.addEventListener('hashchange', () => {
