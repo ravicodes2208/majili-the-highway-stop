@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vishranti — Car-Based Breakeven Calculator</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="logo">
+      <h1>☕ Vishranti</h1>
+      <div class="sub">Highway Coffee Stop · NH-365BB</div>
+    </div>
+    <nav class="nav-items" id="nav-items"></nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main">
+
+    <!-- Sticky Metrics Bar -->
+    <div class="top-bar">
+      <div class="top-metric">
+        <span class="tm-l">Cars Needed/Day</span>
+        <span class="tm-v" id="tb-cars">—</span>
+      </div>
+      <div class="sep"></div>
+      <div class="top-metric">
+        <span class="tm-l">Revenue/Day</span>
+        <span class="tm-v" id="tb-rev">—</span>
+      </div>
+      <div class="sep"></div>
+      <div class="top-metric">
+        <span class="tm-l">Fixed Costs</span>
+        <span class="tm-v" id="tb-fixed">—</span>
+      </div>
+      <div class="sep"></div>
+      <div class="top-metric">
+        <span class="tm-l">Operational BE</span>
+        <span class="tm-v" id="tb-be">—</span>
+      </div>
+      <div class="sep"></div>
+      <div class="top-metric">
+        <span class="tm-l">Stop Rate</span>
+        <span class="tm-v" id="tb-stop">—</span>
+      </div>
+      <div class="sep"></div>
+      <div class="top-metric">
+        <span class="tm-l">Net Profit</span>
+        <span class="tm-v" id="tb-pl">—</span>
+      </div>
+    </div>
+
+    <!-- Page Content -->
+    <div class="content" id="content"></div>
+
+  </div>
+
+  <!-- Scripts (order matters: data → calc → charts → pages → app) -->
+  <script src="js/data.js"></script>
+  <script src="js/calc.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/breakeven.js"></script>
+  <script src="js/category.js"></script>
+  <script src="js/profit.js"></script>
+  <script src="js/payback.js"></script>
+  <script src="js/fixed-optimizer.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
